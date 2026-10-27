@@ -64,6 +64,8 @@ Texts follow Playnite's language: English, French, Russian, Spanish and Chinese.
 
 Made with vibe coding: the extension was written with an AI assistant, tested by hand in Playnite 10 with the themes above, and comes with an automated test suite. It is free; if it is useful to you, you can support the project on [Ko-fi](https://ko-fi.com/autogamesoftwaresave).
 
+Questions, help and news: join the [Discord](https://discord.gg/W8YXUJAK4e).
+
 The source code is visible in this repository (`src`, `tests`) so that you can read and audit what the extension does. It is not open source: see [LICENSE](LICENSE). To build and test it: `dotnet build` / `dotnet test` (.NET Framework 4.6.2, PlayniteSDK 6.15.0).
 
 ## License
