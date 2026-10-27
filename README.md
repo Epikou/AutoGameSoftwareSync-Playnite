@@ -62,7 +62,7 @@ Texts follow Playnite's language: English, French, Russian, Spanish and Chinese.
 
 ## About
 
-Made with vibe coding: the extension was written with an AI assistant, tested by hand in Playnite 10 with the themes above, and comes with an automated test suite. It is free; if it is useful to you, you can support the project on [Ko-fi](https://ko-fi.com/autogamesoftwaresave).
+Made with vibe coding: the extension was tested by hand in Playnite 10 with the themes above, and comes with an automated test suite. It is free; if it is useful to you, you can support the project on [Ko-fi](https://ko-fi.com/autogamesoftwaresave).
 
 Questions, help and news: join the [Discord](https://discord.gg/W8YXUJAK4e).
 

@@ -57,7 +57,7 @@ Les textes suivent la langue de Playnite : anglais, français, russe, espagnol e
 
 ## À propos
 
-Projet « vibecodé » : l'extension a été écrite avec un assistant IA, testée à la main dans Playnite 10 avec les thèmes ci-dessus, et accompagnée d'une suite de tests automatiques. Elle est gratuite ; si elle te sert, tu peux soutenir le projet sur [Ko-fi](https://ko-fi.com/autogamesoftwaresave).
+Projet « vibecodé » : l'extension a été testée à la main dans Playnite 10 avec les thèmes ci-dessus, et accompagnée d'une suite de tests automatiques. Elle est gratuite ; si elle te sert, tu peux soutenir le projet sur [Ko-fi](https://ko-fi.com/autogamesoftwaresave).
 
 Questions, aide et nouveautés : rejoins le [Discord](https://discord.gg/W8YXUJAK4e).
 
