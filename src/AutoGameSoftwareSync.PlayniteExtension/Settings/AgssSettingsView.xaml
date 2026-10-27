@@ -1,0 +1,31 @@
+<UserControl x:Class="AutoGameSoftwareSync.PlayniteExtension.Settings.AgssSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="20">
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,12"
+                   Text="Read-only display. Nothing to configure: the AGSS data folder and the theme are detected automatically." />
+        <CheckBox Content="Enable (read-only status display)" IsChecked="{Binding Settings.Enabled}" Margin="0,0,0,12" />
+        <TextBlock Text="Display" Margin="0,0,0,4" />
+        <ComboBox SelectedIndex="{Binding Settings.DisplayMode}" Width="420" HorizontalAlignment="Left" Margin="0,0,0,12">
+            <ComboBoxItem Content="Automatic (badge on recognised themes, genre otherwise)" />
+            <ComboBoxItem Content="Badge only (never write a field)" />
+            <ComboBoxItem Content="Field only (no badge)" />
+        </ComboBox>
+        <TextBlock Text="Field used by the fallback" Margin="0,0,0,4" />
+        <ComboBox SelectedIndex="{Binding Settings.FieldIndex}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,12">
+            <ComboBoxItem Content="Tags" />
+            <ComboBoxItem Content="Genres" />
+            <ComboBoxItem Content="Features" />
+            <ComboBoxItem Content="Categories" />
+        </ComboBox>
+        <TextBlock Text="Prefix of added items" Margin="0,0,0,4" />
+        <TextBox Text="{Binding Settings.Prefix, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,12" />
+        <CheckBox Content="Show the 'Protected' state in the fallback field" IsChecked="{Binding Settings.ShowSynced}" Margin="0,0,0,6" />
+        <CheckBox Content="Notify when a game becomes Conflict or Cloud newer" IsChecked="{Binding Settings.Notifications}" Margin="0,0,0,12" />
+        <TextBlock Text="status.json path (empty = automatic detection)" Margin="0,0,0,4" />
+        <TextBox Text="{Binding Settings.StatusPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+        <TextBlock>
+            <Hyperlink NavigateUri="https://ko-fi.com/autogamesoftwaresave">Support AutoGameSoftwareSync on Ko-fi</Hyperlink>
+        </TextBlock>
+    </StackPanel>
+</UserControl>

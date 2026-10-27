@@ -1,0 +1,9 @@
+Id: AutoGameSoftwareSync_Playnite_Plugin
+Name: AutoGameSoftwareSync
+Author: AutoGameSoftwareSync
+Version: 1.1.0
+Module: AutoGameSoftwareSync.PlayniteExtension.dll
+Type: GenericPlugin
+Links:
+    - Name: Support the project (Ko-fi)
+      Url: https://ko-fi.com/autogamesoftwaresave

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Playnite 10.x loads extensions on .NET Framework 4.6.2 (PlayniteSDK 6.x targets net462). -->
+    <TargetFramework>net462</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>AutoGameSoftwareSync.PlayniteExtension</RootNamespace>
+    <AssemblyName>AutoGameSoftwareSync.PlayniteExtension</AssemblyName>
+    <Version>1.1.0</Version>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- No local path in the binaries: no PDB, deterministic build, source paths remapped. -->
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/src</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PlayniteSDK" Version="6.15.0" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
