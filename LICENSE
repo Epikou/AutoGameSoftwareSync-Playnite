@@ -6,14 +6,14 @@ English
 1. Free to use. You may download and use this extension free of charge for personal use.
 2. The source code is visible so that you can read, audit and learn from it. It is NOT open source: no right to copy, modify, redistribute or build derivative works is granted, except to the extent applicable law expressly allows it. You may share the link to the official download. You may not sell the extension, repackage it or distribute modified versions. Ask the author first for any other use.
 3. The names "AutoGameSoftwareSync" and "AGSS", logos and branding may not be used without prior written permission.
-4. No warranty. The extension is provided "as is", without warranty of any kind. It is read-only: it only reads the status file written by AutoGameSoftwareSync.
+4. No warranty. The extension is provided "as is", without warranty of any kind. It does not launch, restore or back up anything and never touches your save files: it reads the status file written by AutoGameSoftwareSync, writes the installed games list (playnite-library.json) in the AutoGameSoftwareSync data folder and, in fallback mode, one genre / tag per followed game in the Playnite library; it removes only that list and those items.
 5. Limitation of liability. To the extent permitted by law, the author is not liable for any damage resulting from the use of the extension.
 
 Francais
 1. Utilisation gratuite. Vous pouvez telecharger et utiliser cette extension gratuitement, pour un usage personnel.
 2. Le code source est visible pour que vous puissiez le lire, l'auditer et en apprendre. Ce n'est PAS un logiciel libre : aucun droit de copie, de modification, de redistribution ni d'oeuvre derivee n'est accorde, sauf dans la mesure ou la loi applicable l'autorise expressement. Vous pouvez partager le lien de telechargement officiel. Vous ne pouvez pas vendre l'extension, la reconditionner ni distribuer des versions modifiees. Demandez d'abord l'accord de l'auteur pour tout autre usage.
 3. Les noms "AutoGameSoftwareSync" et "AGSS", logos et identite visuelle ne peuvent pas etre utilises sans accord ecrit prealable.
-4. Aucune garantie. L'extension est fournie "en l'etat", sans garantie d'aucune sorte. Elle est en lecture seule : elle lit seulement le fichier d'etat ecrit par AutoGameSoftwareSync.
+4. Aucune garantie. L'extension est fournie "en l'etat", sans garantie d'aucune sorte. Elle ne lance, ne restaure ni ne sauvegarde rien et ne touche jamais a vos fichiers de sauvegarde : elle lit le fichier d'etat ecrit par AutoGameSoftwareSync, ecrit la liste des jeux installes (playnite-library.json) dans le dossier de donnees d'AutoGameSoftwareSync et, en mode repli, un genre / une etiquette par jeu suivi dans la bibliotheque Playnite ; elle ne supprime que cette liste et ces elements.
 5. Limitation de responsabilite. Dans la mesure permise par la loi, l'auteur n'est pas responsable des dommages resultant de l'utilisation de l'extension.
 
 Playnite and PlayniteSDK belong to their respective authors. / Playnite et PlayniteSDK appartiennent a leurs auteurs respectifs.

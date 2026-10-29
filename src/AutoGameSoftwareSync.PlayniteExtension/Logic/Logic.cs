@@ -75,20 +75,69 @@ namespace AutoGameSoftwareSync.PlayniteExtension.Logic
         }
     }
 
+    /// <summary>
+    /// Which genres / tags / features / categories belong to this extension. Only an item written in the extension's
+    /// exact format is ours: prefix + a known state text (any supported language, current or older label table),
+    /// optionally followed by " · " and a device name. "Action", "Action RPG" or any item the user created are never
+    /// ours, whatever the prefix. The prefix itself must be distinctive (1.2.0: at least 4 characters and one symbol).
+    /// </summary>
+    public static class OwnItems
+    {
+        public const int MinPrefixLength = 4;
+        private const string DeviceSeparator = " · ";
+        private static readonly HashSet<string> labels = AllLabels();
+
+        private static HashSet<string> AllLabels()
+        {
+            var set = new HashSet<string>(StringComparer.Ordinal);
+            foreach (AgssState s in Enum.GetValues(typeof(AgssState)))
+            {
+                if (s == AgssState.Unknown) continue;
+                foreach (var lang in StateTexts.Languages)
+                {
+                    var a = StateTexts.Get(s, lang); if (!string.IsNullOrEmpty(a)) set.Add(a);
+                    var b = Labels.Get(s, lang); if (!string.IsNullOrEmpty(b)) set.Add(b);
+                }
+            }
+            return set;
+        }
+
+        /// <summary>Why this prefix is refused (English message), or null when it is acceptable.</summary>
+        public static string PrefixProblem(string prefix)
+        {
+            if (string.IsNullOrEmpty(prefix) || prefix.Trim().Length == 0) return "The prefix must not be empty.";
+            if (prefix.Trim().Length < MinPrefixLength) return "The prefix must have at least " + MinPrefixLength + " characters (for example \"" + FallbackGenre.DefaultPrefix.Trim() + "\").";
+            if (!prefix.Any(c => !char.IsLetterOrDigit(c) && !char.IsWhiteSpace(c)))
+                return "The prefix must contain at least one symbol such as \":\", \"●\" or \"[\", so that it can never match a genre of your own (for example \"" + FallbackGenre.DefaultPrefix.Trim() + "\").";
+            return null;
+        }
+
+        /// <summary>True when <paramref name="name"/> is an item written by this extension with <paramref name="prefix"/>.</summary>
+        public static bool IsOwn(string name, string prefix)
+        {
+            if (name == null || string.IsNullOrEmpty(prefix) || !name.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            var rest = name.Substring(prefix.Length);
+            if (labels.Contains(rest)) return true;
+            var i = rest.IndexOf(DeviceSeparator, StringComparison.Ordinal);
+            return i > 0 && labels.Contains(rest.Substring(0, i)) && rest.Length > i + DeviceSeparator.Length;
+        }
+    }
+
     public static class ItemPlanner
     {
         /// <summary>
         /// current = item names of the game in the chosen field. Returns the new list of names,
-        /// or null when nothing must change. Items not starting with prefix are never touched.
+        /// or null when nothing must change. Only items in the extension's own format (<see cref="OwnItems.IsOwn"/>)
+        /// are ever touched; a user item that merely starts with the prefix is kept.
         /// </summary>
         public static List<string> Plan(IList<string> current, string prefix, string desired)
         {
-            var mine = current.Where(n => n != null && n.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+            var mine = current.Where(n => OwnItems.IsOwn(n, prefix)).ToList();
             bool alreadyOk = desired == null
                 ? mine.Count == 0
                 : mine.Count == 1 && mine[0] == desired;
             if (alreadyOk) return null;
-            var result = current.Where(n => !(n != null && n.StartsWith(prefix, StringComparison.Ordinal))).ToList();
+            var result = current.Where(n => !OwnItems.IsOwn(n, prefix)).ToList();
             if (desired != null) result.Add(desired);
             return result;
         }

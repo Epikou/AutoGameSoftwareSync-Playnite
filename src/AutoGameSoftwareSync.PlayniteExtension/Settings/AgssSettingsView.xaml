@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel Margin="20">
         <TextBlock TextWrapping="Wrap" Margin="0,0,0,12"
-                   Text="Read-only display. Nothing to configure: the AGSS data folder and the theme are detected automatically." />
-        <CheckBox Content="Enable (read-only status display)" IsChecked="{Binding Settings.Enabled}" Margin="0,0,0,12" />
+                   Text="Shows the AutoGameSoftwareSync (AGSS) state of each game. The AGSS data folder and the theme are detected automatically. What it writes: the installed games list (playnite-library.json) in the AGSS data folder, and, only when the badge cannot be shown by the theme, one genre (or tag / feature / category) per followed game. Nothing else." />
+        <CheckBox Content="Enable" IsChecked="{Binding Settings.Enabled}" Margin="0,0,0,12" />
         <TextBlock Text="Display" Margin="0,0,0,4" />
         <ComboBox SelectedIndex="{Binding Settings.DisplayMode}" Width="420" HorizontalAlignment="Left" Margin="0,0,0,12">
             <ComboBoxItem Content="Automatic (badge on recognised themes, genre otherwise)" />
@@ -18,11 +18,12 @@
             <ComboBoxItem Content="Features" />
             <ComboBoxItem Content="Categories" />
         </ComboBox>
-        <TextBlock Text="Prefix of added items" Margin="0,0,0,4" />
+        <TextBlock Text="Prefix of added items (at least 4 characters and one symbol; only items in the form prefix + state are ever removed)" TextWrapping="Wrap" Margin="0,0,0,4" />
         <TextBox Text="{Binding Settings.Prefix, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,12" />
         <CheckBox Content="Show the 'Protected' state in the fallback field" IsChecked="{Binding Settings.ShowSynced}" Margin="0,0,0,6" />
         <CheckBox Content="Notify when a game becomes Conflict or Cloud newer" IsChecked="{Binding Settings.Notifications}" Margin="0,0,0,12" />
-        <TextBlock Text="status.json path (empty = automatic detection)" Margin="0,0,0,4" />
+        <CheckBox Content="Write the installed games list for AGSS (playnite-library.json next to status.json; unticked = the file is removed)" IsChecked="{Binding Settings.WriteGamesList}" Margin="0,0,0,12" />
+        <TextBlock Text="status.json path (empty = automatic detection; the list is only written next to an existing status.json)" TextWrapping="Wrap" Margin="0,0,0,4" />
         <TextBox Text="{Binding Settings.StatusPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
         <TextBlock>
             <Hyperlink NavigateUri="https://ko-fi.com/autogamesoftwaresave">Support AutoGameSoftwareSync on Ko-fi</Hyperlink>

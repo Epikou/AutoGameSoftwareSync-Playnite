@@ -8,7 +8,7 @@
     <Nullable>disable</Nullable>
     <RootNamespace>AutoGameSoftwareSync.PlayniteExtension</RootNamespace>
     <AssemblyName>AutoGameSoftwareSync.PlayniteExtension</AssemblyName>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <!-- No local path in the binaries: no PDB, deterministic build, source paths remapped. -->
     <DebugType>none</DebugType>
@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <None Include="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="icon.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

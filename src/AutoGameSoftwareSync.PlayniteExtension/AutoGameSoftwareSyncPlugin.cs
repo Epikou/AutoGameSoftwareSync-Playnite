@@ -16,8 +16,11 @@ using Playnite.SDK.Plugins;
 namespace AutoGameSoftwareSync.PlayniteExtension
 {
     /// <summary>
-    /// Read-only display of the AGSS state of each game. Never launches, syncs or changes anything in AGSS.
+    /// Display of the AGSS state of each game. Never launches, syncs or changes anything in AGSS.
     /// Display cascade: badge inserted into recognised themes > fallback genre "● AGSS : state · device" > custom elements.
+    /// Writes: the fallback genre / tag on followed games (only when the badge cannot be shown) and, since 1.2.0, the list of
+    /// installed games <c>playnite-library.json</c> next to an EXISTING status.json of AGSS (removed when the list is switched
+    /// off or the extension disabled). Nothing else.
     /// </summary>
     public class AutoGameSoftwareSyncPlugin : GenericPlugin
     {
@@ -48,6 +51,7 @@ namespace AutoGameSoftwareSync.PlayniteExtension
             settings = new AgssSettingsViewModel(this);
             Properties = new GenericPluginProperties { HasSettings = true };
             source = new FileStatusSource(() => settings.Settings.EffectiveStatusPath);
+            libraryDebounce = new Timer(_ => WriteLibrary(), null, Timeout.Infinite, Timeout.Infinite);
             AddCustomElementSupport(new AddCustomElementSupportArgs
             {
                 SourceName = CustomSource,
@@ -60,11 +64,152 @@ namespace AutoGameSoftwareSync.PlayniteExtension
         public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
         {
             try { PlayniteApi.Database.Games.ItemUpdated += OnGamesUpdated; } catch (Exception ex) { logger.Warn(ex, "AGSS: no game update events"); }
+            try { PlayniteApi.Database.Games.ItemCollectionChanged += (s, e) => ScheduleLibrary(); } catch (Exception ex) { logger.Warn(ex, "AGSS: no game collection events"); }
             Start();
+            ScheduleLibrary();
         }
 
-        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args) { dirty = true; ScheduleRefresh(); }
-        public override void OnApplicationStopped(OnApplicationStoppedEventArgs args) { Stop(); }
+        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args) { dirty = true; ScheduleRefresh(); ScheduleLibrary(); }
+
+        // ---- Installed games list for AGSS (1.2.0) ------------------------------------------
+
+        private readonly Timer libraryDebounce;
+        private readonly object libraryLock = new object();
+        private volatile bool libraryPending;
+        private volatile bool stopping;
+        private string lastLibraryError;
+
+        /// <summary>Debounced (5 s): a library update changes many games at once.</summary>
+        private void ScheduleLibrary()
+        {
+            if (stopping) return;
+            try { libraryPending = true; libraryDebounce.Change(5000, Timeout.Infinite); }
+            catch (Exception ex) { logger.Warn(ex, "AGSS: could not schedule the games list"); }
+        }
+
+        /// <summary>Emulator of an emulator action, as Playnite knows it (null when it no longer exists).</summary>
+        private EmulatorInfo EmulatorOf(Guid emulatorId, string profileId)
+        {
+            if (emulatorId == Guid.Empty) return null;
+            var e = PlayniteApi.Database.Emulators.Get(emulatorId);
+            if (e == null) return null;
+            var info = new EmulatorInfo { Name = e.Name ?? "", InstallDir = e.InstallDir ?? "" };
+            try
+            {
+                var p = string.IsNullOrEmpty(profileId) ? null : e.GetProfile(profileId);
+                if (p != null)
+                {
+                    var custom = p as CustomEmulatorProfile;
+                    var builtIn = p as BuiltInEmulatorProfile;
+                    info.Profile = (builtIn != null ? builtIn.BuiltInProfileName : null) ?? p.Name ?? "";
+                    info.Exe = custom?.Executable ?? "";
+                }
+            }
+            catch { }
+            return info;
+        }
+
+        private LibraryGame ToLibraryGame(Game g)
+        {
+            var actions = new List<LibraryAction>();
+            if (g.GameActions != null)
+                foreach (var a in g.GameActions)
+                {
+                    if (a == null) continue;
+                    actions.Add(new LibraryAction
+                    {
+                        Kind = a.Type == GameActionType.File ? LibraryAction.File : a.Type == GameActionType.Emulator ? LibraryAction.Emulator : LibraryAction.Other,
+                        Path = a.Path ?? "",
+                        EmulatorId = a.EmulatorId,
+                        ProfileId = a.EmulatorProfileId ?? ""
+                    });
+                }
+            var platforms = g.Platforms == null ? new List<string>() : g.Platforms.Where(p => p != null).Select(p => p.Name).ToList();
+            var roms = g.Roms == null ? new List<string>() : g.Roms.Where(r => r != null).Select(r => r.Path).ToList();
+            return LibraryGame.Build(g.Id.ToString(), g.Name, g.Source?.Name, g.PluginId == Guid.Empty ? "" : g.PluginId.ToString(),
+                g.InstallDirectory, g.GameId, LibraryFile.SteamAppIdOf(g.PluginId, g.GameId), platforms, g.Hidden, actions, roms,
+                EmulatorOf, (text, emuDir) => emuDir == null ? PlayniteApi.ExpandGameVariables(g, text) : PlayniteApi.ExpandGameVariables(g, text, emuDir));
+        }
+
+        /// <summary>
+        /// Path of the list, or null when it must not be written: list switched off, status.json path not ending in
+        /// status.json, or no status.json yet in that folder (the list only ever goes next to an EXISTING status.json,
+        /// so that a Playnite instance pointed at a folder AGSS does not use never writes there).
+        /// </summary>
+        private string LibraryPath(out string reason)
+        {
+            reason = null;
+            var status = settings.Settings.EffectiveStatusPath;
+            var path = LibraryFile.PathNextTo(status);
+            if (path == null) { reason = "status.json path not set or not ending in status.json: " + (status ?? ""); return null; }
+            if (!File.Exists(status)) { reason = "no status.json yet in " + Path.GetDirectoryName(status); return null; }
+            return path;
+        }
+
+        /// <summary>Writes playnite-library.json (installed games only) next to status.json. The only extra file written.</summary>
+        private void WriteLibrary()
+        {
+            lock (libraryLock)
+            {
+                libraryPending = false;
+                try
+                {
+                    Exception error = null;
+                    var path = LibraryFile.PathNextTo(settings.Settings.EffectiveStatusPath);
+                    if (!settings.Settings.Enabled || !settings.Settings.WriteGamesList)
+                    {
+                        if (path != null && LibraryFile.Delete(path, out error)) logger.Info("AGSS: installed games list removed (list switched off): " + path);
+                        else if (error != null) WarnOnce(error, "AGSS: could not remove the installed games list " + path);
+                        return;
+                    }
+                    string reason;
+                    path = LibraryPath(out reason);
+                    if (path == null) { logger.Debug("AGSS: installed games list not written (" + reason + ")"); return; }
+                    var games = PlayniteApi.Database.Games.Where(g => g != null && g.IsInstalled).Select(ToLibraryGame).ToList();
+                    switch (LibraryFile.Write(path, LibraryFile.ToJson(games, DateTime.UtcNow), out error))
+                    {
+                        case WriteResult.Written: lastLibraryError = null; logger.Info("AGSS: installed games list written (" + games.Count + " games): " + path); break;
+                        case WriteResult.Unchanged: lastLibraryError = null; break;
+                        default: WarnOnce(error, "AGSS: could not write the installed games list " + path); break;
+                    }
+                }
+                catch (Exception ex) { WarnOnce(ex, "AGSS: could not build the installed games list"); }
+            }
+        }
+
+        /// <summary>One warning per cause (the write is retried at every event): the log is not flooded.</summary>
+        private void WarnOnce(Exception ex, string message)
+        {
+            var key = message + "|" + (ex == null ? "" : ex.GetType().Name + ": " + ex.Message);
+            if (key == lastLibraryError) return;
+            lastLibraryError = key;
+            if (ex != null) logger.Warn(ex, message); else logger.Warn(message);
+        }
+
+        /// <summary>Every 30 s: the list is (re)written when status.json exists but the list does not (AGSS installed after Playnite started, folder emptied...).</summary>
+        private void CheckLibraryPresent()
+        {
+            try
+            {
+                var s = settings.Settings;
+                if (!s.Enabled || !s.WriteGamesList || libraryPending) return;
+                string reason;
+                var path = LibraryPath(out reason);
+                if (path != null && !File.Exists(path)) ScheduleLibrary();
+            }
+            catch (Exception ex) { logger.Warn(ex, "AGSS: games list check failed"); }
+        }
+
+        /// <summary>At exit: a pending write is done now (synchronously), then the timer is released.</summary>
+        private void FlushLibrary()
+        {
+            stopping = true;
+            try { libraryDebounce.Change(Timeout.Infinite, Timeout.Infinite); } catch { }
+            if (libraryPending) WriteLibrary();
+            try { libraryDebounce.Dispose(); } catch { }
+        }
+
+        public override void OnApplicationStopped(OnApplicationStoppedEventArgs args) { Stop(); FlushLibrary(); }
         public override void OnGameSelected(OnGameSelectedEventArgs args) { injector?.OnSelectionChanged(); }
 
         public void OnSettingsChanged()
@@ -72,7 +217,9 @@ namespace AutoGameSoftwareSync.PlayniteExtension
             Stop();
             dirty = true;
             lastText = null;
+            lastLibraryError = null;
             Start();
+            ScheduleLibrary(); // new path, list switched on / off, extension disabled: the list follows
         }
 
         private bool IsFullscreen
@@ -122,7 +269,7 @@ namespace AutoGameSoftwareSync.PlayniteExtension
                     injector.Start();
                 }
                 debounce = new Timer(_ => Refresh(), null, Timeout.Infinite, Timeout.Infinite);
-                safetyTimer = new Timer(_ => { EnsureWatcher(); Refresh(); }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30));
+                safetyTimer = new Timer(_ => { EnsureWatcher(); Refresh(); CheckLibraryPresent(); }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(30));
                 EnsureWatcher();
             }
             catch (Exception ex) { logger.Warn(ex, "AGSS: start failed (30 s polling still active)"); }
@@ -165,15 +312,17 @@ namespace AutoGameSoftwareSync.PlayniteExtension
             {
                 var path = settings.Settings.EffectiveStatusPath;
                 if (watcher != null && string.Equals(path, watchedPath, StringComparison.OrdinalIgnoreCase)) return;
+                var moved = watchedPath != null;
                 watcher?.Dispose(); watcher = null; watchedPath = null;
                 var dir = Path.GetDirectoryName(path);
                 if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return;
                 var w = new FileSystemWatcher(dir, Path.GetFileName(path)) { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
                 w.Changed += (s, e) => ScheduleRefresh();
-                w.Created += (s, e) => ScheduleRefresh();
+                w.Created += (s, e) => { ScheduleRefresh(); ScheduleLibrary(); }; // status.json appears: the list can now be written next to it
                 w.Renamed += (s, e) => ScheduleRefresh();
                 w.EnableRaisingEvents = true;
                 watcher = w; watchedPath = path;
+                if (moved) ScheduleLibrary(); // data folder changed (environment variable, settings): the list follows
             }
             catch (Exception ex) { logger.Warn(ex, "AGSS: could not watch the status file (30 s polling still active)"); }
         }
@@ -185,6 +334,7 @@ namespace AutoGameSoftwareSync.PlayniteExtension
 
         private void OnGamesUpdated(object sender, ItemUpdatedEventArgs<Game> e)
         {
+            if (!selfUpdating) ScheduleLibrary(); // installed / uninstalled, folder moved...
             if (selfUpdating || !started) return;
             // A metadata download may have replaced the genres: re-apply (no write when everything is already right).
             dirty = true;
@@ -303,7 +453,7 @@ namespace AutoGameSoftwareSync.PlayniteExtension
             }
         }
 
-        /// <summary>Puts the desired own item (or none) on a game. Items not starting with the prefix are never touched.</summary>
+        /// <summary>Puts the desired own item (or none) on a game. Only items in our exact format (prefix + state) are ever touched.</summary>
         private bool SetOwnItem(Game game, int field, string prefix, string desired)
         {
             var ids = GetIds(game, field) ?? new List<Guid>();
@@ -312,14 +462,14 @@ namespace AutoGameSoftwareSync.PlayniteExtension
             if (plan == null) return false;
             var newIds = new List<Guid>();
             for (int i = 0; i < ids.Count; i++)
-                if (names[i] == null || !names[i].StartsWith(prefix, StringComparison.Ordinal)) newIds.Add(ids[i]);
+                if (!OwnItems.IsOwn(names[i], prefix)) newIds.Add(ids[i]);
             if (desired != null) newIds.Add(EnsureItem(desired, field));
             SetIds(game, field, newIds.Distinct().ToList());
             PlayniteApi.Database.Games.Update(game);
             return true;
         }
 
-        /// <summary>Deletes our own items (prefix) used by no game, so that nothing stays in the filters.</summary>
+        /// <summary>Deletes our own items (prefix + state, never a user item) used by no game, so that nothing stays in the filters.</summary>
         private void DeleteUnused(int field, string prefix, List<Game> games)
         {
             var used = new HashSet<Guid>(games.SelectMany(g => GetIds(g, field) ?? new List<Guid>()));
@@ -464,7 +614,7 @@ namespace AutoGameSoftwareSync.PlayniteExtension
             int field = settings.Settings.FieldIndex;
             if (string.IsNullOrEmpty(prefix)) return;
             var answer = PlayniteApi.Dialogs.ShowMessage(
-                "Remove every item starting with \"" + prefix + "\" from the current field of all games?",
+                "Remove every item added by AutoGameSoftwareSync (\"" + prefix + "\" followed by a state) from the current field of all games? Your own items are kept.",
                 "AutoGameSoftwareSync", MessageBoxButton.YesNo);
             if (answer != MessageBoxResult.Yes) return;
             var games = PlayniteApi.Database.Games.ToList();

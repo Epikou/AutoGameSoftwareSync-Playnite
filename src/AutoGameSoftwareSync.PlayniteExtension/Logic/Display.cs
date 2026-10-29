@@ -300,11 +300,11 @@ namespace AutoGameSoftwareSync.PlayniteExtension.Logic
             return prefix + m.StateText + (m.DeviceText != null ? " · " + m.DeviceText : "");
         }
 
-        /// <summary>Names of our own items (prefix) that no game uses any more.</summary>
+        /// <summary>Our own items (prefix + state text, see <see cref="OwnItems.IsOwn"/>) that no game uses any more. Never a user item.</summary>
         public static List<T> Unused<T>(IEnumerable<T> items, Func<T, string> name, Func<T, bool> isUsed, string prefix)
         {
             if (string.IsNullOrEmpty(prefix)) return new List<T>();
-            return items.Where(i => { var n = name(i); return n != null && n.StartsWith(prefix, StringComparison.Ordinal) && !isUsed(i); }).ToList();
+            return items.Where(i => OwnItems.IsOwn(name(i), prefix) && !isUsed(i)).ToList();
         }
     }
 

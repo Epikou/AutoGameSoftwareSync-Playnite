@@ -198,3 +198,73 @@ namespace AutoGameSoftwareSync.PlayniteExtension.Tests
         }
     }
 }
+
+namespace AutoGameSoftwareSync.PlayniteExtension.Tests
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using AutoGameSoftwareSync.PlayniteExtension.Logic;
+    using Xunit;
+
+    /// <summary>1.2.0: only items in the extension's exact format are ever removed; the prefix must be distinctive.</summary>
+    public class OwnItemsTests
+    {
+        private const string P = "● AGSS : ";
+
+        [Fact]
+        public void RecognisesOwnFormatInEveryLanguageAndOldLabels()
+        {
+            Assert.True(OwnItems.IsOwn(P + "Protected", P));
+            Assert.True(OwnItems.IsOwn(P + "Protected · EPIGOS", P));
+            Assert.True(OwnItems.IsOwn(P + "Protégé · Mon PC portable", P));
+            Assert.True(OwnItems.IsOwn(P + "Защищено", P));
+            Assert.True(OwnItems.IsOwn(P + "已同步", P));
+            Assert.True(OwnItems.IsOwn("AGSS : Synced", "AGSS : "), "labels of versions 0.x (cleanup of the old field)");
+            Assert.True(OwnItems.IsOwn("AGSS : Conflict", "AGSS : "));
+        }
+
+        [Fact]
+        public void NeverAUserItem()
+        {
+            Assert.False(OwnItems.IsOwn("Action", "Action"));
+            Assert.False(OwnItems.IsOwn("Action RPG", "Action"));
+            Assert.False(OwnItems.IsOwn("Adventure", "A"));
+            Assert.False(OwnItems.IsOwn(P + "Something else", P));
+            Assert.False(OwnItems.IsOwn(P + "Protected ·", P), "device separator without a device");
+            Assert.False(OwnItems.IsOwn(P + "Protected · ", P));
+            Assert.False(OwnItems.IsOwn(P, P));
+            Assert.False(OwnItems.IsOwn(null, P));
+            Assert.False(OwnItems.IsOwn(P + "Protected", ""));
+            Assert.False(OwnItems.IsOwn(P + "Protected", null));
+        }
+
+        [Fact]
+        public void GenericPrefixNeverDeletesUserGenres()
+        {
+            // The scenario of the quality review: prefix "Action" (or "A") must not touch "Action", "Action RPG", "Adventure".
+            Assert.Null(ItemPlanner.Plan(new[] { "Action", "Action RPG" }, "Action", null));
+            Assert.Null(ItemPlanner.Plan(new[] { "Action", "Adventure" }, "A", null));
+            Assert.Equal(new[] { "Action", "Action RPG", "Action" + "Protected" }, ItemPlanner.Plan(new[] { "Action", "Action RPG" }, "Action", "ActionProtected").ToArray());
+            var items = new[] { "Action", "Action RPG", "ActionProtected" };
+            Assert.Equal(new[] { "ActionProtected" }, FallbackGenre.Unused(items, x => x, x => false, "Action").ToArray());
+            // Prefix changed by the user: old items in the old format are cleaned, user items with the same letters are kept.
+            Assert.Equal(new[] { "AGSSX", "AGSS : my own" }, ItemPlanner.Plan(new[] { "AGSS : Synced", "AGSSX", "AGSS : my own" }, "AGSS : ", null).ToArray());
+        }
+
+        [Fact]
+        public void PrefixRule()
+        {
+            Assert.Null(OwnItems.PrefixProblem(FallbackGenre.DefaultPrefix));
+            Assert.Null(OwnItems.PrefixProblem("AGSS : "));
+            Assert.Null(OwnItems.PrefixProblem("[Saves] "));
+            Assert.Null(OwnItems.PrefixProblem("Sync:"));
+            Assert.NotNull(OwnItems.PrefixProblem(""));
+            Assert.NotNull(OwnItems.PrefixProblem("   "));
+            Assert.NotNull(OwnItems.PrefixProblem("A"));
+            Assert.NotNull(OwnItems.PrefixProblem("Action"));
+            Assert.NotNull(OwnItems.PrefixProblem("Action "));
+            Assert.NotNull(OwnItems.PrefixProblem("A:"));
+        }
+    }
+}

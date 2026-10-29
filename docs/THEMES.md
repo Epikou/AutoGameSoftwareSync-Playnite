@@ -1,6 +1,6 @@
 # AGSS for theme authors
 
-The AutoGameSoftwareSync (AGSS) extension is read-only: it shows, for each game, the AGSS state, the last sync date and the device the version in place comes from. Nothing is required from theme authors. This page is for those who want to place the information themselves.
+The AutoGameSoftwareSync (AGSS) extension shows, for each game, the AGSS state, the last sync date and the device the version in place comes from. Nothing is required from theme authors. This page is for those who want to place the information themselves.
 
 ## Custom elements
 

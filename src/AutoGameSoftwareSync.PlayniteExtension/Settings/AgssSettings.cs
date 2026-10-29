@@ -23,8 +23,11 @@ namespace AutoGameSoftwareSync.PlayniteExtension.Settings
         private int settingsVersion = 0; // 0 = saved by an older version (set to CurrentVersion for new installs)
         private string cleanupPrefix = "";
         private int cleanupFieldIndex = -1;
+        private bool writeGamesList = true;
 
         public bool Enabled { get => enabled; set => SetValue(ref enabled, value); }
+        /// <summary>1.2.0: write the installed games list (playnite-library.json) next to status.json. Off = the file is removed.</summary>
+        public bool WriteGamesList { get => writeGamesList; set => SetValue(ref writeGamesList, value); }
         /// <summary>0 automatic (badge when the theme is recognised, genre otherwise), 1 badge only, 2 field only.</summary>
         public int DisplayMode { get => displayMode; set => SetValue(ref displayMode, value); }
         public int FieldIndex { get => fieldIndex; set => SetValue(ref fieldIndex, value); }
@@ -121,8 +124,8 @@ namespace AutoGameSoftwareSync.PlayniteExtension.Settings
         public bool VerifySettings(out List<string> errors)
         {
             errors = new List<string>();
-            if (string.IsNullOrEmpty(Settings.Prefix))
-                errors.Add("The prefix must not be empty (it protects items you created yourself).");
+            var problem = OwnItems.PrefixProblem(Settings.Prefix);
+            if (problem != null) errors.Add(problem);
             if (Settings.FieldIndex < 0 || Settings.FieldIndex > 3) Settings.FieldIndex = 1;
             if (Settings.DisplayMode < 0 || Settings.DisplayMode > 2) Settings.DisplayMode = 0;
             return errors.Count == 0;

@@ -1,4 +1,6 @@
 # To be run by the user, with Playnite CLOSED. Copies the build output into Playnite's Extensions folder.
+# Testing in a PORTABLE Playnite instead? Set the status.json path in the extension settings to a TEST folder first:
+# with an empty path the installed games list goes to the real AGSS data folder of this Windows account.
 param([string]$Configuration = "Debug")
 $ErrorActionPreference = "Stop"
 $id  = "AutoGameSoftwareSync_Playnite_Plugin"
